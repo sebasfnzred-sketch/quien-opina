@@ -5,6 +5,79 @@ Léelo completo antes de tocar cualquier archivo del proyecto.
 
 ---
 
+## Estado actual
+
+**MVP COMPLETADO.** El proyecto está funcionando, buildea sin errores y está publicado en GitHub.
+
+- GitHub: `https://github.com/sebasfnzred-sketch/quien-opina`
+- Vercel: pendiente de deploy (importar desde vercel.com/new — cero configuración requerida)
+- Rama principal: `main`
+
+---
+
+## Qué funcionalidades YA EXISTEN (no reconstruir)
+
+- Landing con input de tema y botones de temas sugeridos.
+- Pantalla de "analizando" con pipeline de pasos animados.
+- Dashboard ejecutivo completo con 8 paneles:
+  - KPIs: Riesgo, Oportunidad, Momentum, Cobertura.
+  - Resumen ejecutivo en 4 puntos generado automáticamente.
+  - Tabla de actores ordenados por peso estratégico.
+  - Distribución de postura ponderada (no por volumen).
+  - Matriz de posicionamiento SVG (influencia × postura).
+  - Narrativas con momentum y composición de postura.
+  - Red de actores (layout radial SVG).
+  - Señales tempranas de riesgo por severidad.
+  - Recomendaciones ejecutivas (defensa / oportunidad / monitoreo).
+- Banner de "Modo demostración" visible arriba del dashboard.
+- Motor analítico completo (`src/lib/analysis.ts`): peso estratégico, momentum, risk score, opportunity score, señales, recomendaciones.
+- Dataset semilla de 28 menciones curadas (caso Anthropic / Claude AI).
+- Sistema de diseño completo: tokens, fuentes, animaciones, componentes base.
+
+## Qué NO existe todavía
+
+- Ingesta de datos reales (X, prensa, RSS, newsletters).
+- Backend ni base de datos.
+- Autenticación ni cuentas de usuario.
+- Búsqueda real por tema (todos los temas corren sobre el mismo dataset semilla).
+- Histórico de análisis o series de tiempo.
+- Exportación a PDF.
+- Alertas por email o Slack.
+
+---
+
+## Próxima prioridad absoluta
+
+**Integración de datos reales por tema.**
+
+Pasos concretos:
+1. Conectar X API v2 para recuperar tweets por keyword.
+2. Conectar NewsAPI o GNews para prensa.
+3. Clasificar postura y rol de cada mención con Claude API (claude-sonnet-4-6) por batch.
+4. Persistir menciones en base de datos (InsForge — ver restricciones abajo).
+5. Pasar el dataset real a `generateReport` en lugar del semilla.
+
+---
+
+## Qué NO debe reconstruir un futuro Claude
+
+- El sistema de diseño visual — está completo y tiene identidad propia. No reemplazar con shadcn/ui ni Chakra.
+- Los componentes SVG (ScoreGauge, PositioningMatrix, NetworkPreview) — son intencionales sin librerías.
+- La lógica del motor analítico — no tocar sin entender el modelo de dominio en `src/lib/types.ts` primero.
+- La estructura de archivos — está organizada por capas (data / lib / components). Mantenerla.
+- El flujo idle → analyzing → done en `page.tsx` — funciona bien tal como está.
+
+---
+
+## Cómo debe iniciar una nueva sesión
+
+1. Leer este archivo completo.
+2. Ejecutar `npm run dev` y abrir `http://localhost:3000` para ver el estado visual actual.
+3. Revisar `src/lib/types.ts` para entender el modelo de dominio antes de cualquier cambio.
+4. Confirmar con el usuario cuál es la prioridad del día antes de escribir código.
+
+---
+
 ## Visión del producto
 
 QuiénOpina es una plataforma de **inteligencia de actores estratégicos** para marcas, causas y personas públicas.
@@ -270,3 +343,18 @@ Git:
 ```bash
 git add . && git commit -m "..." && git push
 ```
+
+---
+
+# SESSION HANDOFF
+
+**QuiénOpina — resumen en 60 segundos para un Claude nuevo.**
+
+- **Qué es:** Dashboard de inteligencia de actores estratégicos. No mide menciones: mide peso estratégico (alcance × credibilidad × amplificación) de cada actor para identificar quién importa, qué narrativa crece y qué riesgo hay.
+- **Estado:** MVP COMPLETADO. Build limpio, código en GitHub (`https://github.com/sebasfnzred-sketch/quien-opina`), deploy en Vercel pendiente de activar.
+- **Stack:** Next.js 15 + TypeScript + Tailwind v4. Sin backend, sin DB, sin auth. Todo corre en cliente.
+- **Lo que existe:** landing → pantalla de análisis → dashboard ejecutivo con 8 paneles (KPIs, actores, narrativas, red, señales, recomendaciones). Motor analítico real en `src/lib/analysis.ts`. Dataset semilla de 28 menciones (caso Anthropic/IA).
+- **Lo que NO existe:** datos reales, backend, auth, búsqueda real por tema, histórico, exportación.
+- **Prioridad absoluta siguiente:** ingesta de datos reales por tema vía X API + NewsAPI + Claude API para clasificación de postura/rol.
+- **Restricción clave:** el backend debe usar InsForge (no Supabase). No agregar librerías de gráficos. Mantener el sistema de diseño "Terminal de Inteligencia Ejecutiva".
+- **Para empezar:** leer este archivo → `npm run dev` → revisar `src/lib/types.ts` → preguntar al usuario qué quiere hacer hoy.
