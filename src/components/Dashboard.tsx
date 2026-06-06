@@ -12,6 +12,38 @@ import { RecommendationsPanel } from "@/components/RecommendationsPanel";
 // Compositor del dashboard ejecutivo. Orden pensado como lectura de reporte:
 // resumen → KPIs → actores → narrativas → red → señales → acciones.
 
+function DemoBanner() {
+  return (
+    <div
+      className="rise flex items-start gap-4 rounded-2xl px-5 py-4"
+      style={{
+        background:
+          "linear-gradient(100deg, rgba(155,123,255,0.08), rgba(245,165,36,0.06))",
+        border: "1px solid rgba(155,123,255,0.22)",
+        boxShadow: "0 0 40px -20px rgba(155,123,255,0.25)",
+      }}
+    >
+      <span
+        className="font-mono mt-0.5 shrink-0 rounded-md px-2 py-0.5 text-[0.65rem] tracking-widest"
+        style={{
+          color: "var(--color-violet)",
+          background: "rgba(155,123,255,0.12)",
+          border: "1px solid rgba(155,123,255,0.25)",
+        }}
+      >
+        DEMO
+      </span>
+      <div>
+        <p className="text-sm font-medium text-bone">Modo demostración</p>
+        <p className="mt-0.5 text-xs leading-relaxed text-bone-dim">
+          Este análisis utiliza un conjunto de datos de ejemplo diseñado para validar el motor
+          analítico de QuiénOpina. La siguiente fase integrará fuentes de datos en tiempo real.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function DashboardHeader({ report }: { report: IntelligenceReport }) {
   const date = new Date(report.generatedAt).toLocaleDateString("es-MX", {
     day: "2-digit",
@@ -43,6 +75,9 @@ export function Dashboard({ report }: { report: IntelligenceReport }) {
   return (
     <div className="space-y-5">
       <DashboardHeader report={report} />
+
+      {/* Banner de modo demostración */}
+      <DemoBanner />
 
       {/* KPIs ejecutivos */}
       <KpiStrip report={report} />
