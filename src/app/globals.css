@@ -1,0 +1,188 @@
+@import "tailwindcss";
+
+/* ───────────────────────────────────────────────────────────────────────────
+   QuiénOpina — sistema de diseño "Terminal de Inteligencia Ejecutiva"
+   Fondo casi negro, tipografía editorial, acentos ámbar/violeta/esmeralda.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+@theme {
+  --color-ink-900: #07080c;
+  --color-ink-850: #0a0c12;
+  --color-ink-800: #0e111a;
+  --color-ink-700: #141926;
+  --color-ink-600: #1c2233;
+  --color-line: #232a3d;
+
+  --color-bone: #f4f1ea;
+  --color-bone-dim: #b9bccb;
+  --color-muted: #757d96;
+
+  --color-amber: #f5a524;
+  --color-amber-soft: #f7b955;
+  --color-violet: #9b7bff;
+  --color-emerald: #34d399;
+  --color-rose: #fb7185;
+
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-sans: var(--font-hanken), system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+}
+
+* {
+  border-color: var(--color-line);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-ink-900);
+  color: var(--color-bone);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  /* Atmósfera: malla de gradientes sutiles + grano fino sobre fondo oscuro. */
+  background-image:
+    radial-gradient(60rem 40rem at 12% -8%, rgba(155, 123, 255, 0.14), transparent 60%),
+    radial-gradient(50rem 36rem at 92% 4%, rgba(245, 165, 36, 0.1), transparent 58%),
+    radial-gradient(46rem 40rem at 78% 100%, rgba(52, 211, 153, 0.07), transparent 60%);
+  background-attachment: fixed;
+}
+
+/* Grano fino global para textura "imprenta". */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+}
+
+/* Tipografía display */
+.font-display {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+}
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* Mono "etiqueta" para tags y métricas */
+.label-mono {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+/* Panel base — vidrio oscuro con borde fino y brillo superior */
+.panel {
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0) 32%),
+    var(--color-ink-850);
+  border: 1px solid var(--color-line);
+  border-radius: 1rem;
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.04) inset,
+    0 24px 60px -30px rgba(0, 0, 0, 0.9);
+}
+
+.panel-hover {
+  transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+}
+.panel-hover:hover {
+  border-color: rgba(245, 165, 36, 0.35);
+  transform: translateY(-2px);
+}
+
+/* Línea divisoria con punteado fino */
+.hair {
+  border-top: 1px dashed var(--color-line);
+}
+
+/* Barra de score */
+.bar-track {
+  background: var(--color-ink-700);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+/* Animaciones de entrada escalonadas */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.rise {
+  animation: rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes growbar {
+  from {
+    width: 0;
+  }
+}
+.growbar {
+  animation: growbar 1s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes pulse-dot {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.7);
+  }
+}
+.pulse-dot {
+  animation: pulse-dot 1.8s ease-in-out infinite;
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes sweep {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(220%);
+  }
+}
+.sweep {
+  animation: sweep 1.4s ease-in-out infinite;
+}
+
+/* Scrollbar discreta */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-ink-600);
+  border-radius: 999px;
+  border: 2px solid var(--color-ink-900);
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Selección de texto */
+::selection {
+  background: rgba(245, 165, 36, 0.3);
+  color: var(--color-bone);
+}
