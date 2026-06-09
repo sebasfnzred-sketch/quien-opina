@@ -54,7 +54,7 @@ Pasos concretos:
 1. Conectar X API v2 para recuperar tweets por keyword.
 2. Conectar NewsAPI o GNews para prensa.
 3. Clasificar postura y rol de cada mención con Claude API (claude-sonnet-4-6) por batch.
-4. Persistir menciones en base de datos (InsForge — ver restricciones abajo).
+4. Persistir menciones en base de datos (InsForge).
 5. Pasar el dataset real a `generateReport` en lugar del semilla.
 
 ---
@@ -125,7 +125,8 @@ Las cinco preguntas que el producto responde:
 | Visualizaciones | SVG puro, sin librerías de gráficos |
 | Runtime | React 19 / Node 26 |
 | Deploy target | Vercel (static export via Next.js) |
-| Sin backend | Sin DB, sin auth, sin API routes |
+| Base de datos | InsForge (`@insforge/sdk`) — Supabase descartado por límite de proyectos gratuitos |
+| Sin auth | Sin cuentas de usuario por ahora |
 
 ---
 
@@ -286,7 +287,7 @@ Conectar fuentes reales por tema:
 - RSS de prensa (NewsAPI, GNews o scraping de cabeceras LATAM).
 - Newsletters vía Beehiiv o substack RSS.
 - Clasificador de postura y rol con Claude API (claude-sonnet-4-6) por batch.
-- Almacenar menciones en base de datos (InsForge/Supabase).
+- Almacenar menciones en base de datos (InsForge).
 
 ### Prioridad 2 — Series de tiempo y alertas
 - Guardar snapshots del reporte por fecha por tema.
@@ -303,7 +304,7 @@ Conectar fuentes reales por tema:
 
 ## Restricciones actuales a respetar
 
-- No introducir backend sin InsForge. El proyecto sigue la decisión de stack del workspace (`local-business-os` usa InsForge, no Supabase).
+- **Backend de QuiénOpina: InsForge.** Este proyecto usa InsForge (`@insforge/sdk`) como backend y capa de persistencia. Supabase fue descartado porque no había proyectos gratuitos disponibles. InsForge se aplica únicamente dentro del repo `quien-opina` — no modifica ni interfiere con otros proyectos del workspace.
 - No agregar librerías de gráficos (recharts, chart.js, d3) — mantener SVG manual o proponer al usuario antes de instalar.
 - Mantener la estética "Terminal de Inteligencia Ejecutiva" — no usar componentes genéricos como shadcn/ui sin adaptarlos al sistema de diseño existente.
 - El `"use client"` debe ser mínimo. No convertir componentes a cliente sin necesidad.
@@ -355,6 +356,6 @@ git add . && git commit -m "..." && git push
 - **Stack:** Next.js 15 + TypeScript + Tailwind v4. Sin backend, sin DB, sin auth. Todo corre en cliente.
 - **Lo que existe:** landing → pantalla de análisis → dashboard ejecutivo con 8 paneles (KPIs, actores, narrativas, red, señales, recomendaciones). Motor analítico real en `src/lib/analysis.ts`. Dataset semilla de 28 menciones (caso Anthropic/IA).
 - **Lo que NO existe:** datos reales, backend, auth, búsqueda real por tema, histórico, exportación.
-- **Prioridad absoluta siguiente:** ingesta de datos reales por tema vía X API + NewsAPI + Claude API para clasificación de postura/rol.
-- **Restricción clave:** el backend debe usar InsForge (no Supabase). No agregar librerías de gráficos. Mantener el sistema de diseño "Terminal de Inteligencia Ejecutiva".
+- **Prioridad absoluta siguiente:** ingesta de datos reales por tema vía NewsAPI + Claude API para clasificación de postura/rol.
+- **Restricción clave:** el backend usa **InsForge** (`@insforge/sdk`), aplicado únicamente dentro de `quien-opina`. No agregar librerías de gráficos. Mantener el sistema de diseño "Terminal de Inteligencia Ejecutiva".
 - **Para empezar:** leer este archivo → `npm run dev` → revisar `src/lib/types.ts` → preguntar al usuario qué quiere hacer hoy.
