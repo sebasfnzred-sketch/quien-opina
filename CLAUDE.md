@@ -50,8 +50,11 @@ Léelo completo antes de tocar cualquier archivo del proyecto.
 - **Frontend conectado** (`page.tsx`): tema ≠ seed → llama `/api/analyze`; si
   falla, muestra error + fallback al reporte demo.
 
-**Estado:** código completo de punta a punta, compila, pero **NO validado
-end-to-end** — no hay `.env.local` ni proyecto InsForge provisionado verificado.
+**Estado:** código completo de punta a punta, compila, **VALIDADO end-to-end**
+el 2026-06-10. Primer análisis real ejecutado con el tema `OpenAI`:
+20 menciones reales de prensa, riesgo 83/100, oportunidad 17/100, capa
+ejecutiva generada por Sonnet, 20 filas persistidas en `mentions`, 2 snapshots
+en `report_snapshots`. Pipeline funciona de punta a punta en localhost.
 
 ### MVP 2 — Capa de inteligencia ejecutiva (commit `8b96fbe`)
 Convierte el producto de "dashboard analítico" a "copiloto ejecutivo". Tres
@@ -155,14 +158,12 @@ Variables de entorno (`.env.example`): `INSFORGE_URL`, `INSFORGE_ANON_KEY`,
 
 ## Qué falta para producción real (en orden)
 
-1. **Proyecto InsForge provisionado**: `npx @insforge/cli create` (o `link`),
-   ejecutar `docs/insforge-setup.sql`, obtener URL + ANON_KEY.
-2. **Variables de entorno**: `.env.local` en local y las 4 vars en Vercel.
-3. **Verificar tablas**: `mentions` y `report_snapshots` creadas con índices y RLS.
-4. **Validación end-to-end**: correr un tema real y verificar cada paso del
-   pipeline (artículos → clasificación → filas en DB → reporte → executive → snapshot).
-5. Decidir **NewsAPI plan pago vs. GNews** (ver riesgos).
-6. Deploy en Vercel + smoke test en producción.
+1. ~~**Proyecto InsForge provisionado**~~ ✅ Proyecto "Quien Opina" (`fa5iq2zk.us-east`), tablas creadas, validado.
+2. ~~**Variables de entorno en local**~~ ✅ `.env.local` creado y verificado (gitignored).
+3. ~~**Validación end-to-end**~~ ✅ `OpenAI` analizado el 2026-06-10: 20 menciones, riesgo 83, oportunidad 17, capa ejecutiva completa.
+4. **Variables de entorno en Vercel**: agregar las 4 vars (`NEWSAPI_KEY`, `ANTHROPIC_API_KEY`, `INSFORGE_URL`, `INSFORGE_ANON_KEY`) en el dashboard de Vercel antes del deploy.
+5. Decidir **NewsAPI plan pago vs. GNews** — el plan gratuito solo funciona en localhost, no en Vercel (ver riesgos).
+6. **Deploy en Vercel** + smoke test en producción.
 
 ## Riesgos conocidos
 
@@ -321,8 +322,10 @@ npm run start    # build de producción local
 - **Rama:** `phase-2-supabase-ingestion` (backend real: InsForge, no Supabase).
   Último commit: `8b96fbe`. `main` NO tiene nada de esto. Sin PR ni merge aún.
 - **Demo funciona sin claves** (seed + `DEMO_EXECUTIVE` curado). El pipeline real
-  compila pero NO está validado end-to-end: faltan proyecto InsForge, `.env.local`
-  y ejecución del SQL (`docs/insforge-setup.sql`).
+  está **validado end-to-end** (2026-06-10): tema `OpenAI` → 20 menciones reales,
+  riesgo 83/100, capa ejecutiva generada, datos persistidos en InsForge.
+  InsForge provisionado: proyecto "Quien Opina" (`fa5iq2zk.us-east`).
+  `.env.local` en local con las 4 vars. Pendiente: vars en Vercel + deploy.
 - **Riesgos top:** NewsAPI gratuito no funciona desde Vercel (plan pago o GNews);
   ingesta solo en inglés; timeout >10 s en Vercel Hobby (configurar `maxDuration`);
   `sourceUrl` se descarta (bloquea evidencia clickeable); `/api/analyze` sin auth.
