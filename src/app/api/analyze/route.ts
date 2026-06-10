@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchNewsArticles } from "@/lib/ingestion/newsapi";
 import { classifyMentions } from "@/lib/ingestion/classify";
+import { synthesizeExecutiveLayer } from "@/lib/ingestion/synthesize";
 import { saveMentions, getMentionsForTopic, saveReportSnapshot } from "@/lib/db";
 import { generateReport } from "@/lib/analysis";
 
@@ -40,7 +41,10 @@ export async function POST(req: NextRequest) {
     // 5. Run the analytics engine
     const report = generateReport(mentions, topic, new Date());
 
-    // 6. Persist snapshot
+    // 6. Executive layer (Sonnet). Null on failure — never blocks the report.
+    report.executive = (await synthesizeExecutiveLayer(report)) ?? undefined;
+
+    // 7. Persist snapshot
     await saveReportSnapshot(report);
 
     return NextResponse.json(report);

@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { mentions, SEED_TOPIC } from "@/data/mentions";
+import { DEMO_EXECUTIVE } from "@/data/executive-demo";
 import { generateReport } from "@/lib/analysis";
 import type { IntelligenceReport } from "@/lib/types";
 import { SearchHero } from "@/components/SearchHero";
@@ -17,37 +18,55 @@ export default function Home() {
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
 
   // Demo mode: runs the engine locally with the seed dataset (no API keys needed).
+  // The executive layer is precomputed (Sonnet runs server-side only).
   const demoReport: IntelligenceReport = useMemo(
-    () => generateReport(mentions, SEED_TOPIC),
+    () => ({ ...generateReport(mentions, SEED_TOPIC), executive: DEMO_EXECUTIVE }),
     [],
   );
 
   const report = liveReport ?? demoReport;
+
+  // El dashboard solo se muestra cuando la animación terminó Y el fetch real
+  // (si lo hay) ya resolvió — evita enseñar el demo mientras /api/analyze
+  // sigue pendiente.
+  const fetchPendingRef = useRef(false);
+  const animDoneRef = useRef(false);
 
   const handleGenerate = useCallback(async (t: string) => {
     setTopic(t);
     setAnalyzeError(null);
     setLiveReport(null);
     setPhase("analyzing");
+    animDoneRef.current = false;
 
-    if (t.trim().toLowerCase() !== SEED_TOPIC.toLowerCase()) {
-      try {
-        const res = await fetch("/api/analyze", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ topic: t }),
-        });
-        if (!res.ok) {
-          const { error } = await res.json();
-          throw new Error(error ?? `HTTP ${res.status}`);
-        }
-        const data: IntelligenceReport = await res.json();
-        setLiveReport(data);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : "Error desconocido";
-        setAnalyzeError(msg);
+    const isLive = t.trim().toLowerCase() !== SEED_TOPIC.toLowerCase();
+    fetchPendingRef.current = isLive;
+    if (!isLive) return;
+
+    try {
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic: t }),
+      });
+      if (!res.ok) {
+        const { error } = await res.json();
+        throw new Error(error ?? `HTTP ${res.status}`);
       }
+      const data: IntelligenceReport = await res.json();
+      setLiveReport(data);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Error desconocido";
+      setAnalyzeError(msg);
+    } finally {
+      fetchPendingRef.current = false;
+      if (animDoneRef.current) setPhase("done");
     }
+  }, []);
+
+  const handleAnimDone = useCallback(() => {
+    animDoneRef.current = true;
+    if (!fetchPendingRef.current) setPhase("done");
   }, []);
 
   const reset = useCallback(() => {
@@ -86,7 +105,7 @@ export default function Home() {
       <div className="mx-auto max-w-7xl px-5">
         {phase === "idle" && <SearchHero onGenerate={handleGenerate} />}
         {phase === "analyzing" && (
-          <Analyzing topic={topic} onDone={() => setPhase("done")} />
+          <Analyzing topic={topic} onDone={handleAnimDone} />
         )}
         {phase === "done" && (
           <div className="py-8">
@@ -96,7 +115,7 @@ export default function Home() {
                 <span className="ml-2 text-bone-dim">· Mostrando datos demo.</span>
               </div>
             )}
-            <Dashboard report={report} />
+            <Dashboard report={report} demo={!liveReport} />
             <footer className="mt-12 border-t border-line py-8 text-center text-xs text-muted">
               {liveReport
                 ? `QuiénOpina · Datos reales · ${report.totalMentions} menciones analizadas`
