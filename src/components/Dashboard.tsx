@@ -1,5 +1,6 @@
 import type { IntelligenceReport } from "@/lib/types";
 import { KpiStrip } from "@/components/KpiStrip";
+import { ExecutivePanel } from "@/components/ExecutivePanel";
 import { ExecutiveSummary } from "@/components/ExecutiveSummary";
 import { StancePanel } from "@/components/StancePanel";
 import { ActorTable } from "@/components/ActorTable";
@@ -71,13 +72,16 @@ function DashboardHeader({ report }: { report: IntelligenceReport }) {
   );
 }
 
-export function Dashboard({ report }: { report: IntelligenceReport }) {
+export function Dashboard({ report, demo = true }: { report: IntelligenceReport; demo?: boolean }) {
   return (
     <div className="space-y-5">
       <DashboardHeader report={report} />
 
-      {/* Banner de modo demostración */}
-      <DemoBanner />
+      {/* Banner de modo demostración — solo cuando el reporte viene del seed */}
+      {demo && <DemoBanner />}
+
+      {/* Capa ejecutiva: brief, postura y stakeholders (si la síntesis existe) */}
+      {report.executive && <ExecutivePanel executive={report.executive} />}
 
       {/* KPIs ejecutivos */}
       <KpiStrip report={report} />

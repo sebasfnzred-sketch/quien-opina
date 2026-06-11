@@ -130,6 +130,41 @@ export interface NetworkLink {
   target: string;
 }
 
+// ── Capa ejecutiva (sintetizada por Claude sobre el reporte determinista) ────
+
+/** Postura pública recomendada si la organización decide hablar del tema. */
+export type Posture = "defensiva" | "neutral" | "proactiva";
+
+/** Audiencias con recomendación diferenciada. */
+export type StakeholderKey =
+  | "board"
+  | "ejecutivos"
+  | "empleados"
+  | "clientes"
+  | "reguladores"
+  | "medios";
+
+/**
+ * Capa de juicio ejecutivo generada por Claude a partir del IntelligenceReport.
+ * No contiene números propios: todo dato citado debe existir en el reporte.
+ * Perspectiva asumida: el lector es la organización protagonista del tema.
+ */
+export interface ExecutiveLayer {
+  /** Máx 5 bullets: qué pasa / por qué importa / riesgo / oportunidad / qué hacer ahora. */
+  brief: string[];
+  positioning: {
+    posture: Posture;
+    rationale: string;
+    /** Primera acción concreta, ejecutable en 24–48h. */
+    firstMove: string;
+  };
+  stakeholderRecs: {
+    stakeholder: StakeholderKey;
+    action: string;
+    rationale: string;
+  }[];
+}
+
 /** Resultado completo del motor: lo que consume el dashboard. */
 export interface IntelligenceReport {
   topic: string;
@@ -146,4 +181,6 @@ export interface IntelligenceReport {
   warnings: EarlyWarning[];
   recommendations: Recommendation[];
   network: { nodes: NetworkNode[]; links: NetworkLink[] };
+  /** Capa ejecutiva opcional: ausente si la síntesis falla o no hay API key. */
+  executive?: ExecutiveLayer;
 }

@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
-import { mentions } from "@/data/mentions";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { mentions, SEED_TOPIC } from "@/data/mentions";
+import { DEMO_EXECUTIVE } from "@/data/executive-demo";
 import { generateReport } from "@/lib/analysis";
 import type { IntelligenceReport } from "@/lib/types";
 import { SearchHero } from "@/components/SearchHero";
@@ -12,21 +13,67 @@ type Phase = "idle" | "analyzing" | "done";
 
 export default function Home() {
   const [phase, setPhase] = useState<Phase>("idle");
-  const [topic, setTopic] = useState("Anthropic / Claude AI");
+  const [topic, setTopic] = useState(SEED_TOPIC);
+  const [liveReport, setLiveReport] = useState<IntelligenceReport | null>(null);
+  const [analyzeError, setAnalyzeError] = useState<string | null>(null);
 
-  // El motor analiza el dataset semilla y personaliza el encabezado con el
-  // tema ingresado. (En producción, aquí entraría la ingesta real por tema.)
-  const report: IntelligenceReport = useMemo(
-    () => generateReport(mentions, topic),
-    [topic],
+  // Demo mode: runs the engine locally with the seed dataset (no API keys needed).
+  // The executive layer is precomputed (Sonnet runs server-side only).
+  const demoReport: IntelligenceReport = useMemo(
+    () => ({ ...generateReport(mentions, SEED_TOPIC), executive: DEMO_EXECUTIVE }),
+    [],
   );
 
-  const handleGenerate = useCallback((t: string) => {
+  const report = liveReport ?? demoReport;
+
+  // El dashboard solo se muestra cuando la animación terminó Y el fetch real
+  // (si lo hay) ya resolvió — evita enseñar el demo mientras /api/analyze
+  // sigue pendiente.
+  const fetchPendingRef = useRef(false);
+  const animDoneRef = useRef(false);
+
+  const handleGenerate = useCallback(async (t: string) => {
     setTopic(t);
+    setAnalyzeError(null);
+    setLiveReport(null);
     setPhase("analyzing");
+    animDoneRef.current = false;
+
+    const isLive = t.trim().toLowerCase() !== SEED_TOPIC.toLowerCase();
+    fetchPendingRef.current = isLive;
+    if (!isLive) return;
+
+    try {
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic: t }),
+      });
+      if (!res.ok) {
+        const { error } = await res.json();
+        throw new Error(error ?? `HTTP ${res.status}`);
+      }
+      const data: IntelligenceReport = await res.json();
+      setLiveReport(data);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Error desconocido";
+      setAnalyzeError(msg);
+    } finally {
+      fetchPendingRef.current = false;
+      if (animDoneRef.current) setPhase("done");
+    }
   }, []);
 
-  const reset = useCallback(() => setPhase("idle"), []);
+  const handleAnimDone = useCallback(() => {
+    animDoneRef.current = true;
+    if (!fetchPendingRef.current) setPhase("done");
+  }, []);
+
+  const reset = useCallback(() => {
+    setPhase("idle");
+    setLiveReport(null);
+    setAnalyzeError(null);
+  }, []);
 
   return (
     <main className="min-h-screen">
@@ -58,14 +105,21 @@ export default function Home() {
       <div className="mx-auto max-w-7xl px-5">
         {phase === "idle" && <SearchHero onGenerate={handleGenerate} />}
         {phase === "analyzing" && (
-          <Analyzing topic={topic} onDone={() => setPhase("done")} />
+          <Analyzing topic={topic} onDone={handleAnimDone} />
         )}
         {phase === "done" && (
           <div className="py-8">
-            <Dashboard report={report} />
+            {analyzeError && (
+              <div className="mb-6 rounded-lg border border-rose px-4 py-3 text-sm text-rose" style={{ background: "rgba(251,113,133,0.08)" }}>
+                <span className="font-mono font-semibold">Error al obtener datos reales:</span> {analyzeError}
+                <span className="ml-2 text-bone-dim">· Mostrando datos demo.</span>
+              </div>
+            )}
+            <Dashboard report={report} demo={!liveReport} />
             <footer className="mt-12 border-t border-line py-8 text-center text-xs text-muted">
-              QuiénOpina · Demo de inteligencia de actores estratégicos · Datos semilla simulados,
-              motor de análisis real.
+              {liveReport
+                ? `QuiénOpina · Datos reales · ${report.totalMentions} menciones analizadas`
+                : "QuiénOpina · Demo de inteligencia de actores estratégicos · Datos semilla simulados, motor de análisis real."}
             </footer>
           </div>
         )}
