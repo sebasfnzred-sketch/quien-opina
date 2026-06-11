@@ -7,16 +7,14 @@ Léelo completo antes de tocar cualquier archivo del proyecto.
 
 ## Estado actual (junio 2026)
 
-**MVP 1 + Sprint 1 (datos reales) + MVP 2 (capa ejecutiva) + filtro de relevancia implementados.**
+**MVP 1 + Sprint 1 + MVP 2 + filtro de relevancia — EN PRODUCCIÓN. Pipeline real validado.**
 
 - GitHub: `https://github.com/sebasfnzred-sketch/quien-opina`
-- **Rama de trabajo actual: `phase-2-supabase-ingestion`** (el nombre dice "supabase"
-  por razones históricas; el backend real es **InsForge**. No renombrar sin avisar al usuario.)
-- **Último commit relevante: próximo commit — "Improve news relevance filtering for real-topic analysis"**
-  (anterior: `8b96fbe` — "Add executive intelligence layer for MVP 2")
-- `main` todavía NO tiene nada de esta rama. No mergear ni abrir PR sin aprobación del usuario.
-- Vercel: deploy pendiente de activar.
-- Build verificado limpio (`npm run build`) en el commit de filtro de relevancia.
+- **Rama principal: `main`** (commit `d4f3ccb` — merge de toda la rama de desarrollo)
+- **Producción: `https://quien-opina.vercel.app`** — deploy activo, Ready.
+- **Validado en producción el 2026-06-10** con temas `OpenAI` y `Tesla`.
+  Pipeline completo: NewsAPI → Relevance Filter → Haiku → InsForge → Motor → Sonnet.
+- `phase-2-supabase-ingestion` ya mergeada a `main`. Trabajo futuro desde `main` o rama nueva.
 
 ---
 
@@ -166,10 +164,10 @@ Variables de entorno (`.env.example`): `INSFORGE_URL`, `INSFORGE_ANON_KEY`,
 
 1. ~~**Proyecto InsForge provisionado**~~ ✅ Proyecto "Quien Opina" (`fa5iq2zk.us-east`), tablas creadas, validado.
 2. ~~**Variables de entorno en local**~~ ✅ `.env.local` creado y verificado (gitignored).
-3. ~~**Validación end-to-end**~~ ✅ `OpenAI` analizado el 2026-06-10: 20 menciones, riesgo 83, oportunidad 17, capa ejecutiva completa.
-4. **Variables de entorno en Vercel**: agregar las 4 vars (`NEWSAPI_KEY`, `ANTHROPIC_API_KEY`, `INSFORGE_URL`, `INSFORGE_ANON_KEY`) en el dashboard de Vercel antes del deploy.
-5. Decidir **NewsAPI plan pago vs. GNews** — el plan gratuito solo funciona en localhost, no en Vercel (ver riesgos).
-6. **Deploy en Vercel** + smoke test en producción.
+3. ~~**Validación end-to-end local**~~ ✅ `OpenAI` analizado el 2026-06-10: 20 menciones, riesgo 83, oportunidad 17, capa ejecutiva completa.
+4. ~~**Variables de entorno en Vercel**~~ ✅ Configuradas (pipeline funciona en producción).
+5. ~~**Decidir NewsAPI plan**~~ ✅ Resuelto (funciona en producción — plan o configuración activa).
+6. ~~**Deploy en Vercel + smoke test**~~ ✅ Validado en producción el 2026-06-10 con `OpenAI` y `Tesla`.
 
 ## Riesgos conocidos
 
@@ -327,23 +325,20 @@ npm run start    # build de producción local
 - **Qué es:** copiloto de inteligencia ejecutiva. Motor determinista mide peso
   estratégico de actores/narrativas (capa 1); Sonnet lo traduce a decisión —
   brief CEO, postura recomendada, recomendaciones por stakeholder (capa 2).
-- **Estado:** MVP 1 + Sprint 1 + MVP 2 + filtro de relevancia implementados y
-  commiteados. Build limpio verificado en cada commit.
-- **Rama:** `phase-2-supabase-ingestion` (backend real: InsForge, no Supabase).
-  Último commit: filtro de relevancia. `main` NO tiene nada de esto. Sin PR ni merge aún.
+- **Estado:** EN PRODUCCIÓN. Pipeline completo validado con `OpenAI` y `Tesla`
+  el 2026-06-10. URL: `https://quien-opina.vercel.app`. Commit en prod: `d4f3ccb`.
+- **Rama:** `main` (rama de desarrollo `phase-2-supabase-ingestion` ya mergeada).
 - **Demo funciona sin claves** (seed + `DEMO_EXECUTIVE` curado). Pipeline real
-  **validado end-to-end** (2026-06-10): `OpenAI` → riesgo 83/oportunidad 17;
-  `Copa Mundial 2026` → riesgo 0/oportunidad 76 (filtro elimina Bruno Fernandes,
-  moda, artículos tangenciales). InsForge provisionado: `fa5iq2zk.us-east`.
-  `.env.local` en local con las 4 vars. Pendiente: vars en Vercel + deploy.
+  requiere las 4 vars en Vercel — ya configuradas y validadas.
 - **Filtro de relevancia** (`src/lib/ingestion/relevance.ts`): etapa determinista
   entre fetchRawArticles y classifyMentions. Regla: topic (o equivalentes) debe
-  aparecer en title o description. Logs en dev: fetched/relevant/discarded/reasons.
-  Limitación: equivalentes en `EQUIVALENTS[]` son manuales y están incompletos.
-- **Riesgos top:** NewsAPI gratuito no funciona desde Vercel (plan pago o GNews);
-  ingesta solo en inglés; timeout >10 s en Vercel Hobby (configurar `maxDuration`);
-  `sourceUrl` se descarta (bloquea evidencia clickeable); `/api/analyze` sin auth.
-- **Siguiente prioridad:** `sourceUrl` end-to-end, luego deploy en Vercel.
+  aparecer en title o description. Limitación: equivalentes en `EQUIVALENTS[]`
+  son manuales — temas en español sin equivalente configurado pueden perder artículos.
+- **Riesgos activos:** timeout >10 s en Vercel Hobby (configurar `maxDuration`);
+  `sourceUrl` se descarta (bloquea evidencia clickeable); `/api/analyze` sin auth;
+  ingesta solo en inglés (NewsAPI `language: "en"` fijo).
+- **Siguiente prioridad:** `sourceUrl` end-to-end (campo en `Mention`, columna en DB,
+  conservarlo en classify — desbloquea evidencia clickeable en la capa ejecutiva).
 - **Reglas:** leer `src/lib/types.ts` antes de tocar el motor; el LLM nunca
   calcula números; no correr `npm run build` con el dev server vivo; preguntar
   al usuario la prioridad del día antes de escribir código.
