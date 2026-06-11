@@ -56,7 +56,11 @@ export async function saveMentions(topic: string, mentions: Mention[]): Promise<
   }));
 
   const { error } = await db.from("mentions").insert(rows);
-  if (error) throw new Error(`saveMentions failed: ${error.message}`);
+  if (error) {
+    // Duplicate key means the articles already exist — safe to ignore.
+    if (error.message.includes("duplicate key")) return;
+    throw new Error(`saveMentions failed: ${error.message}`);
+  }
 }
 
 export async function getMentionsForTopic(topic: string): Promise<Mention[]> {

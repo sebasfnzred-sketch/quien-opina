@@ -3,7 +3,7 @@ import type { Mention, Platform } from "../types";
 
 const NEWSAPI_BASE = "https://newsapi.org/v2";
 
-interface NewsApiArticle {
+export interface NewsApiArticle {
   title: string;
   description: string | null;
   content: string | null;
@@ -19,9 +19,9 @@ interface NewsApiResponse {
   message?: string;
 }
 
-function articleToRawMention(
+export function convertArticle(
   article: NewsApiArticle,
-  _index: number
+  _index: number,
 ): Omit<Mention, "stance" | "role" | "reachScore" | "credibilityScore" | "amplificationScore" | "connectedActors" | "narrativeTags"> & {
   sourceUrl: string;
 } {
@@ -44,9 +44,9 @@ function articleToRawMention(
   };
 }
 
-export type RawMention = ReturnType<typeof articleToRawMention>;
+export type RawMention = ReturnType<typeof convertArticle>;
 
-export async function fetchNewsArticles(topic: string, pageSize = 20): Promise<RawMention[]> {
+export async function fetchRawArticles(topic: string, pageSize = 20): Promise<NewsApiArticle[]> {
   const apiKey = process.env.NEWSAPI_KEY;
   if (!apiKey) throw new Error("NEWSAPI_KEY not set");
 
@@ -72,7 +72,11 @@ export async function fetchNewsArticles(topic: string, pageSize = 20): Promise<R
     throw new Error(`NewsAPI returned error: ${data.message ?? "unknown"}`);
   }
 
-  return data.articles
-    .filter((a) => a.title && (a.description || a.content))
-    .map((a, i) => articleToRawMention(a, i));
+  return data.articles.filter((a) => a.title && (a.description || a.content));
+}
+
+// Kept for backwards compatibility (used by classify.ts indirectly via route.ts)
+export async function fetchNewsArticles(topic: string, pageSize = 20): Promise<RawMention[]> {
+  const articles = await fetchRawArticles(topic, pageSize);
+  return articles.map((a, i) => convertArticle(a, i));
 }

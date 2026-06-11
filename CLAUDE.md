@@ -7,16 +7,16 @@ Léelo completo antes de tocar cualquier archivo del proyecto.
 
 ## Estado actual (junio 2026)
 
-**MVP 1 + Sprint 1 (datos reales) + MVP 2 (capa ejecutiva) implementados.**
+**MVP 1 + Sprint 1 (datos reales) + MVP 2 (capa ejecutiva) + filtro de relevancia implementados.**
 
 - GitHub: `https://github.com/sebasfnzred-sketch/quien-opina`
 - **Rama de trabajo actual: `phase-2-supabase-ingestion`** (el nombre dice "supabase"
   por razones históricas; el backend real es **InsForge**. No renombrar sin avisar al usuario.)
-- **Último commit relevante: `8b96fbe` — "Add executive intelligence layer for MVP 2"**
-  (anterior: `16f11d5` — pipeline de datos reales + InsForge)
-- `main` todavía NO tiene ni Sprint 1 ni MVP 2. No mergear ni abrir PR sin aprobación del usuario.
+- **Último commit relevante: próximo commit — "Improve news relevance filtering for real-topic analysis"**
+  (anterior: `8b96fbe` — "Add executive intelligence layer for MVP 2")
+- `main` todavía NO tiene nada de esta rama. No mergear ni abrir PR sin aprobación del usuario.
 - Vercel: deploy pendiente de activar.
-- Build verificado limpio (`npm run build`) en `8b96fbe`.
+- Build verificado limpio (`npm run build`) en el commit de filtro de relevancia.
 
 ---
 
@@ -89,10 +89,12 @@ Piezas:
 
 ## Qué NO existe todavía
 
-- Validación end-to-end del pipeline real (faltan claves y proyecto InsForge).
 - Soporte de temas en español en la ingesta (NewsAPI está fijo en `language: "en"`).
 - `sourceUrl` en menciones persistidas (se captura de NewsAPI pero se descarta en
   la clasificación — el tipo `Mention` no lo tiene). Bloquea citas/evidencia clickeable.
+- Equivalentes de idioma incompletos en `relevance.ts`: artículos en portugués
+  ("Copa do Mundo") y en español no matchean porque NewsAPI los trae en inglés
+  pero el filtro no cubre todas las variantes latinas. Cubrir los casos más comunes.
 - Autenticación, rate limiting en `/api/analyze`.
 - Histórico visible / series de tiempo (los snapshots YA se guardan; falta la UI).
 - Alertas, exportación PDF, multi-tema, comparación.
@@ -107,13 +109,16 @@ Flujo demo (sin claves):
 
 Flujo real (tema ≠ seed):
   page.tsx → POST /api/analyze {topic}
-    1. fetchNewsArticles(topic)        NewsAPI, 20 artículos EN
-    2. classifyMentions(...)           Haiku, batches de 10, tool-use
-    3. saveMentions(...)               InsForge, dedup por id
-    4. getMentionsForTopic(...)        histórico del tema (limit 200)
-    5. generateReport(...)             motor determinista (capa 1)
-    6. synthesizeExecutiveLayer(...)   Sonnet, capa ejecutiva (capa 2, opcional)
-    7. saveReportSnapshot(...)         JSONB completo en report_snapshots
+    1. fetchRawArticles(topic)         NewsAPI, 20 artículos EN → NewsApiArticle[]
+    2. filterRelevantArticles(...)     regla determinista: topic en title/description
+                                       → articulos relevantes + log de descartados
+    3. convertArticle(...)             NewsApiArticle[] → RawMention[]
+    4. classifyMentions(...)           Haiku, batches de 10, tool-use
+    5. saveMentions(...)               InsForge, dedup por id
+    6. getMentionsForTopic(...)        histórico del tema (limit 200)
+    7. generateReport(...)             motor determinista (capa 1)
+    8. synthesizeExecutiveLayer(...)   Sonnet, capa ejecutiva (capa 2, opcional)
+    9. saveReportSnapshot(...)         JSONB completo en report_snapshots
   → IntelligenceReport (con .executive si la síntesis funcionó)
 ```
 
@@ -124,7 +129,7 @@ nunca genera cifras nuevas.
 ```
 src/
 ├── app/
-│   ├── api/analyze/route.ts # pipeline completo (pasos 1-7)
+│   ├── api/analyze/route.ts # pipeline completo (pasos 1-9)
 │   ├── layout.tsx           # fuentes, metadata
 │   ├── globals.css          # sistema de diseño (tokens @theme)
 │   └── page.tsx             # idle → analyzing → done; race fix con refs
@@ -137,7 +142,8 @@ src/
 │   ├── insforge.ts          # cliente InsForge server-only lazy
 │   ├── db.ts                # saveMentions / getMentionsForTopic / saveReportSnapshot
 │   └── ingestion/
-│       ├── newsapi.ts       # fetch + RawMention (con sourceUrl, hoy descartado)
+│       ├── newsapi.ts       # fetchRawArticles + convertArticle + NewsApiArticle (export)
+│       ├── relevance.ts     # filterRelevantArticles: regla determinista title/desc
 │       ├── classify.ts      # Haiku: stance/role/scores/tags
 │       └── synthesize.ts    # Sonnet: ExecutiveLayer (capa 2)
 └── components/
@@ -171,6 +177,10 @@ Variables de entorno (`.env.example`): `INSFORGE_URL`, `INSFORGE_ANON_KEY`,
   desde localhost — en Vercel devolverá 426. Hay que pagar plan o migrar a GNews.
 - **NewsAPI solo inglés**: `language: "en"` fijo — temas LATAM en español casi no
   encuentran resultados. Cambiar idioma o hacerlo dinámico.
+- **Filtro de relevancia con equivalentes incompletos**: `relevance.ts` cubre "Copa
+  Mundial" → ["World Cup", …] y un puñado de casos. Temas nuevos en español sin
+  equivalente configurado solo matchean la frase exacta en inglés → muchos descartes
+  falsos negativos. Solución: ampliar `EQUIVALENTS` o usar detección de idioma.
 - **Timeout del route**: NewsAPI + 2 llamadas Haiku + 1 llamada Sonnet ≈ 10-20 s.
   Vercel Hobby corta en 10 s por defecto → configurar `maxDuration` en el route.
 - **`sourceUrl` pendiente**: sin él no hay evidencia clickeable ni citas en la
@@ -317,20 +327,23 @@ npm run start    # build de producción local
 - **Qué es:** copiloto de inteligencia ejecutiva. Motor determinista mide peso
   estratégico de actores/narrativas (capa 1); Sonnet lo traduce a decisión —
   brief CEO, postura recomendada, recomendaciones por stakeholder (capa 2).
-- **Estado:** MVP 1 + Sprint 1 (NewsAPI→Haiku→InsForge→`/api/analyze`) + MVP 2
-  (capa ejecutiva) implementados y commiteados. Build limpio.
+- **Estado:** MVP 1 + Sprint 1 + MVP 2 + filtro de relevancia implementados y
+  commiteados. Build limpio verificado en cada commit.
 - **Rama:** `phase-2-supabase-ingestion` (backend real: InsForge, no Supabase).
-  Último commit: `8b96fbe`. `main` NO tiene nada de esto. Sin PR ni merge aún.
-- **Demo funciona sin claves** (seed + `DEMO_EXECUTIVE` curado). El pipeline real
-  está **validado end-to-end** (2026-06-10): tema `OpenAI` → 20 menciones reales,
-  riesgo 83/100, capa ejecutiva generada, datos persistidos en InsForge.
-  InsForge provisionado: proyecto "Quien Opina" (`fa5iq2zk.us-east`).
+  Último commit: filtro de relevancia. `main` NO tiene nada de esto. Sin PR ni merge aún.
+- **Demo funciona sin claves** (seed + `DEMO_EXECUTIVE` curado). Pipeline real
+  **validado end-to-end** (2026-06-10): `OpenAI` → riesgo 83/oportunidad 17;
+  `Copa Mundial 2026` → riesgo 0/oportunidad 76 (filtro elimina Bruno Fernandes,
+  moda, artículos tangenciales). InsForge provisionado: `fa5iq2zk.us-east`.
   `.env.local` en local con las 4 vars. Pendiente: vars en Vercel + deploy.
+- **Filtro de relevancia** (`src/lib/ingestion/relevance.ts`): etapa determinista
+  entre fetchRawArticles y classifyMentions. Regla: topic (o equivalentes) debe
+  aparecer en title o description. Logs en dev: fetched/relevant/discarded/reasons.
+  Limitación: equivalentes en `EQUIVALENTS[]` son manuales y están incompletos.
 - **Riesgos top:** NewsAPI gratuito no funciona desde Vercel (plan pago o GNews);
   ingesta solo en inglés; timeout >10 s en Vercel Hobby (configurar `maxDuration`);
   `sourceUrl` se descarta (bloquea evidencia clickeable); `/api/analyze` sin auth.
-- **Siguiente prioridad:** operativizar el pipeline real (InsForge + claves +
-  validación e2e) y luego `sourceUrl` end-to-end.
+- **Siguiente prioridad:** `sourceUrl` end-to-end, luego deploy en Vercel.
 - **Reglas:** leer `src/lib/types.ts` antes de tocar el motor; el LLM nunca
   calcula números; no correr `npm run build` con el dev server vivo; preguntar
   al usuario la prioridad del día antes de escribir código.
